@@ -314,11 +314,14 @@ def main(args):
         best_std = {m: 0 for m in model_eval_pool}
         
         for it in trange(0, args.Iteration + 1):
-            if it%100 == 0:
-                print("it:",it)
-                print("syn_dynamic",dynamic_syn[0,0])
-                for name, param in hals[-1].named_parameters():
-                    print(name, param)
+            # print(eval_it_pool)
+            # print(model_eval_pool)
+            # print(it)
+            # if it%100 == 0:
+            #     print("it:",it)
+            #     print("syn_dynamic",dynamic_syn[0,0])
+            #     for name, param in hals[-1].named_parameters():
+            #         print(name, param)
 
             save_this_it = False
             wandb.log({"Progress": it}, step=it)

@@ -214,7 +214,10 @@ def get_dataset(dataset, data_path, num_workers=0,img_size=(112,112),split_num=1
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]  # use imagenet transform
         
-        path = data_path+"/UCF101"
+        # path = data_path+"/UCF101"
+        path = "./data/UCF101_new"
+
+
         assert os.path.exists(path)
         if im_size != (112,112):
             transform = transforms.Compose([transforms.Resize((100,80)),

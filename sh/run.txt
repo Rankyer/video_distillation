@@ -1,0 +1,44 @@
+
+
+
+
+export http_proxy=http://192.168.123.169:18889 &&\
+export https_proxy=http://192.168.123.169:18889 &&\
+export HTTP_PROXY=http://192.168.123.169:18889 &&\
+export HTTPS_PROXY=http://192.168.123.169:18889 &&\
+export NO_PROXY="localhost,127.0.0.0/8,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,lins.lab,*.lins.lab,westlake.edu.cn,*.westlake.edu.cn,*.edu.cn" &&\
+export no_proxy="localhost,127.0.0.0/8,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,lins.lab,*.lins.lab,westlake.edu.cn,*.westlake.edu.cn,*.edu.cn"
+
+
+
+pip install wandb
+
+
+cd sh/baseline
+# bash DM.sh GPU_num Dateset Learning_rate IPC
+bash DM.sh 0,1 miniUCF101 30 1
+
+
+# for DM+Ours
+cd ../s2d
+# for ipc=1
+bash s2d_DM_ms.sh 0,1,2,3 miniUCF101 1e-4 1e-5
+
+# for ipc=5
+bash s2d_DM_ms_5.sh 0,1,2,3 miniUCF101 1e3 1e-6
+
+
+
+
+
+
+nohup bash DM.sh 0,1 miniUCF101 30 1 > DM.log 2>&1 &
+
+
+nohup bash s2d_DM_ms.sh 0,1 miniUCF101 1e-4 1e-5 > DM+Ours.log 2>&1 &
+
+
+1d4d6c55d03f4bcf9dacf048fae90e56ced7ad61
+
+
+1271535632-shanghaitech-university
