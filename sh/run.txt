@@ -29,6 +29,7 @@ bash s2d_DM_ms_5.sh 0,1,2,3 miniUCF101 1e3 1e-6
 
 
 
+bash pretrain.sh 0,1 miniUCF101
 
 
 
