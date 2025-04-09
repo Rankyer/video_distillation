@@ -8,22 +8,17 @@ import torch.nn.functional as F
 import torchvision.utils
 from collections import defaultdict
 from tqdm import tqdm, trange
-
-
 import importlib.util
 import sys
 
-# 动态导入 utils.py 文件
-utils_file_path = "./utils.py"  # 指定 utils.py 文件的路径
+utils_file_path = "./utils.py"
 spec = importlib.util.spec_from_file_location("utils_file", utils_file_path)
 utils_file = importlib.util.module_from_spec(spec)
 sys.modules["utils_file"] = utils_file
 spec.loader.exec_module(utils_file)
 
-# # 正常从 utils 文件夹导入模块
 # from utils.utils import update_feature_extractor
 
-# 使用 utils.py 文件中的内容
 get_dataset = utils_file.get_dataset
 get_network = utils_file.get_network
 get_eval_pool = utils_file.get_eval_pool
@@ -37,8 +32,6 @@ match_loss = utils_file.match_loss
 ParamDiffAug = utils_file.ParamDiffAug
 Conv3DNet = utils_file.Conv3DNet
 
-
-
 import wandb
 import copy
 import random
@@ -49,9 +42,6 @@ import time
 
 
 from NCFM.NCFM import match_loss, cailb_loss, mutil_layer_match_loss, CFLossFunc
-
-
-
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -189,21 +179,7 @@ def epoch(mode, dataloader, net, optimizer, criterion, args):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 def main(args):
-
 
     args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -222,46 +198,21 @@ def main(args):
 
     trainloader = torch.utils.data.DataLoader(dst_train, batch_size=args.batch_train, shuffle=True, num_workers=0)
 
+    accs_test = []
+    accs_train = []
 
-    model_eval_pool = get_eval_pool(args.eval_mode, args.model, args.model)
+    net_eval = get_network(args.model, channel, num_classes, im_size).to(args.device)  # get a random model
 
-    save_this_best_ckpt = False
-    for model_eval in model_eval_pool:
-        # print('Evaluation\nmodel_train = %s, model_eval = %s, iteration = %d'%(args.model, model_eval, it))
+    _, acc_train, acc_test, acc_per_cls = train_model(net_eval, trainloader, testloader, args, test_freq=100)
 
-        # device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-        best_acc = {m: 0 for m in model_eval_pool}
-        best_std = {m: 0 for m in model_eval_pool}
-
-        accs_test = []
-        accs_train = []
-
-        net_eval = get_network(model_eval, channel, num_classes, im_size).to(args.device)  # get a random model
-
-        _, acc_train, acc_test, acc_per_cls = train_model(net_eval, trainloader, testloader, args, test_freq=100)
-
-
-
-        accs_test.append(acc_test)
-        accs_train.append(acc_train)
-        print("acc_per_cls:",acc_per_cls)
-        
-        accs_test = np.array(accs_test)
-        accs_train = np.array(accs_train)
-        acc_test_mean = np.mean(accs_test)
-        acc_test_std = np.std(accs_test)
-        if acc_test_mean > best_acc[model_eval]:
-            best_acc[model_eval] = acc_test_mean
-            best_std[model_eval] = acc_test_std
-            save_this_best_ckpt = True
-        print('Evaluate %d random %s, mean = %.4f std = %.4f\n-------------------------' % (
-            len(accs_test), model_eval, acc_test_mean, acc_test_std))
-        wandb.log({'Accuracy/{}'.format(model_eval): acc_test_mean}, step=it)
-        wandb.log({'Max_Accuracy/{}'.format(model_eval): best_acc[model_eval]}, step=it)
-        wandb.log({'Std/{}'.format(model_eval): acc_test_std}, step=it)
-        wandb.log({'Max_Std/{}'.format(model_eval): best_std[model_eval]}, step=it)
-
+    accs_test.append(acc_test)
+    accs_train.append(acc_train)
+    print("acc_per_cls:",acc_per_cls)
+    
+    accs_test = np.array(accs_test)
+    accs_train = np.array(accs_train)
+    acc_test_mean = np.mean(accs_test)
+    acc_test_std = np.std(accs_test)
 
 
 
