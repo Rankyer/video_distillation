@@ -7,14 +7,40 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.utils
 from tqdm import tqdm, trange
-from utils import get_dataset, get_network, get_eval_pool, evaluate_synset, get_time, DiffAugment, TensorDataset, epoch, get_loops, match_loss, ParamDiffAug, Conv3DNet
+# from utils import get_dataset, get_network, get_eval_pool, evaluate_synset, get_time, DiffAugment, TensorDataset, epoch, get_loops, match_loss, ParamDiffAug, Conv3DNet
 import wandb
 import copy
 import random
 from reparam_module import ReparamModule
 import warnings
 
+import importlib.util
+import sys
+
+# from utils.utils import update_feature_extractor
+
+utils_file_path = "./utils.py"
+spec = importlib.util.spec_from_file_location("utils_file", utils_file_path)
+utils_file = importlib.util.module_from_spec(spec)
+sys.modules["utils_file"] = utils_file
+spec.loader.exec_module(utils_file)
+
 from utils.utils import update_feature_extractor
+
+get_dataset = utils_file.get_dataset
+get_network = utils_file.get_network
+get_eval_pool = utils_file.get_eval_pool
+evaluate_synset = utils_file.evaluate_synset
+get_time = utils_file.get_time
+DiffAugment = utils_file.DiffAugment
+TensorDataset = utils_file.TensorDataset
+epoch = utils_file.epoch
+get_loops = utils_file.get_loops
+match_loss = utils_file.match_loss
+ParamDiffAug = utils_file.ParamDiffAug
+Conv3DNet = utils_file.Conv3DNet
+
+
 
 
 from NCFM.NCFM import match_loss, cailb_loss, mutil_layer_match_loss, CFLossFunc
@@ -175,6 +201,8 @@ def main(args):
                 args, model_init, model_final, model_interval, a=0, b=1
             )
 
+            print("model loaded!")
+
             cf_loss_func = CFLossFunc(0.5, 0.5)
 
             loss = torch.tensor(0.0).to(args.device)
@@ -257,6 +285,8 @@ if __name__ == '__main__':
     parser.add_argument('--save_path',type=str, default='./logged_files', help='path to save')
     parser.add_argument('--frames', type=int, default=16, help='')
 
+
+    parser.add_argument('--pretrain_dir', type=str, default='./pretrain', help='pretrain model path')
 
     args = parser.parse_args()
 

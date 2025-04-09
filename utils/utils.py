@@ -434,7 +434,8 @@ def get_feature_extractor(args):
 def update_feature_extractor(args, model_init, model_final, model_interval, a=0, b=1):
     if args.num_premodel > 0:
         # Select pre-trained model ID
-        slkt_model_id = random.randint(0, args.num_premodel - 1)
+        # slkt_model_id = random.randint(0, args.num_premodel - 1)
+        slkt_model_id = 1
 
         # Construct the paths
         init_path = os.path.join(

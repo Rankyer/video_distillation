@@ -11,10 +11,12 @@ GPU_NUM="2"
 # GPU_TYPE: Specifies the model of the GPU to be used.
 # Example value: "128c256t_768_4090" indicates that NVIDIA GeForce RTX 4090 is the GPU model on LINs Lab cluster, other resources are: "64c128t_512_3090"; "128c256t_768_4090"; "64c128t_512_4090"; "56c112t_768_L40"; "temp".
 # GPU_TYPE="128c256t_768_4090"
-GPU_TYPE="64c128t_512_4090"
+# GPU_TYPE="64c128t_512_4090"
 # GPU_TYPE="128c256t_768_6000Ada"
 # GPU_TYPE="56c112t_768_L40"
 # GPU_TYPE="64c128t_512_3090"
+
+GPU_TYPE="128c256t_768_4090"
 
 # Calculate the amount of memory. Each GPU corresponds to 4G of memory.
 MEMORY=$(($GPU_NUM * 16))G
@@ -29,7 +31,7 @@ ROOT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # DATA_PATH: Defines the file system location for additional data beyond what is already in the project directory.
 # Example value: "/labdata0/linslab" indicates the directory path for storing public data.
-DATA_PATH="/labdata1/yrk/data"
+DATA_PATH="/labdata1/yrk/dt"
 
 ##################################################################
 ################# End of Configuration Parameters ################
@@ -54,7 +56,7 @@ bind_mounts:
     - host_path: $ROOT_PATH  # Map the project directory to a path inside the container.
       container_path: /run/determined/workdir/home
     - host_path: $DATA_PATH  # Map the additional data storage path to a path inside the container.
-      container_path: /run/determined/workdir/home/data
+      container_path: /run/determined/workdir/home/dt
 
 # Environment section: specifies the container image to be used.
 environment:
