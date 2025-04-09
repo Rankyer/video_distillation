@@ -1,10 +1,14 @@
 .DS_Store
 *.pt
 *.png
-*.log
+
 *.json
 *.wandb
 requirements.txt
 *.yaml
 *.pyc
 latest-run
+
+*.pth
+
+wandb/
