@@ -36,7 +36,7 @@ DiffAugment = utils_file.DiffAugment
 TensorDataset = utils_file.TensorDataset
 epoch = utils_file.epoch
 get_loops = utils_file.get_loops
-match_loss = utils_file.match_loss
+# match_loss = utils_file.match_loss
 ParamDiffAug = utils_file.ParamDiffAug
 Conv3DNet = utils_file.Conv3DNet
 
@@ -142,6 +142,10 @@ def main(args):
     optimizer_lr = torch.optim.SGD([syn_lr], lr=args.lr_lr, momentum=0.5) if args.train_lr else None
     optimizer_img.zero_grad()
 
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer_img, mode="min", factor=0.5, patience=500, verbose=False
+    )
+
     criterion = nn.CrossEntropyLoss().to(args.device)
     print('%s training begins'%get_time())
 
@@ -150,10 +154,11 @@ def main(args):
     
     if args.method == "CF":
         print("CF")
-        for it in trange(0, args.Iteration+1, ncols=60):
-            print(it)
+        # for it in trange(0, args.Iteration+1, ncols=60):
+        for it in range(0, args.Iteration+1):
             ''' Evaluate synthetic data '''
             if it in eval_it_pool:
+                # print(it)
                 save_this_best_ckpt = False
                 for model_eval in model_eval_pool:
                     print('Evaluation\nmodel_train = %s, model_eval = %s, iteration = %d'%(args.model, model_eval, it))
@@ -162,7 +167,7 @@ def main(args):
                     for it_eval in range(args.num_eval):
                         net_eval = get_network(model_eval, channel, num_classes, im_size).to(args.device)  # get a random model
                         image_syn_eval, label_syn_eval = image_syn.detach().clone(), label_syn.detach().clone() # avoid any unaware modification
-                        _, acc_train, acc_test, acc_per_cls = evaluate_synset(it_eval, net_eval, image_syn_eval, label_syn_eval, testloader, args, mode='none',test_freq=500)
+                        _, acc_train, acc_test, acc_per_cls = evaluate_synset(it_eval, net_eval, image_syn_eval, label_syn_eval, testloader, args, mode='none',test_freq=100)
 
                         accs_test.append(acc_test)
                         accs_train.append(acc_train)
@@ -181,6 +186,8 @@ def main(args):
                     wandb.log({'Max_Accuracy/{}'.format(model_eval): best_acc[model_eval]}, step=it)
                     wandb.log({'Std/{}'.format(model_eval): acc_test_std}, step=it)
                     wandb.log({'Max_Std/{}'.format(model_eval): best_std[model_eval]}, step=it)
+
+                    print(f"Max_Accuracy{best_acc[model_eval]}")
             
             if it in eval_it_pool and (save_this_best_ckpt or it % 1000 == 0):
                 image_save = image_syn.detach()
@@ -201,7 +208,7 @@ def main(args):
                 args, model_init, model_final, model_interval, a=0, b=1
             )
 
-            print("model loaded!")
+            # print("model loaded!")
 
             cf_loss_func = CFLossFunc(0.5, 0.5)
 
@@ -226,9 +233,7 @@ def main(args):
             # scheduler = optim.lr_scheduler.MultiStepLR(
             #     optimizer_img, milestones=[1 * args.niter // 4,2 * args.niter // 4,  3* args.niter // 4], gamma=0.8
             # )
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer_img, mode="min", factor=0.5, patience=500, verbose=False
-            )
+
 
             current_loss = (
                 (match_loss_total) / args.nclass
@@ -287,6 +292,9 @@ if __name__ == '__main__':
 
 
     parser.add_argument('--pretrain_dir', type=str, default='./pretrain', help='pretrain model path')
+
+    parser.add_argument('--nclass', type=int, default=50, help='number of class')
+
 
     args = parser.parse_args()
 

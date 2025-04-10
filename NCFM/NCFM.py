@@ -64,11 +64,25 @@ class CFLossFunc(nn.Module):
         return loss
 
 
+# def match_loss(img_real, img_syn, model, cf_loss_func):
+#     """Matching losses (feature or gradient)"""
+#     with torch.no_grad():
+#         _, feat_tg = model(img_real, return_features=True)
+#     _, feat = model(img_syn, return_features=True)
+#     feat = F.normalize(feat, dim=1)
+#     feat_tg = F.normalize(feat_tg, dim=1)
+#     t = None
+#     loss = 300 * cf_loss_func(feat_tg, feat, t)
+#     return loss
+
 def match_loss(img_real, img_syn, model, cf_loss_func):
     """Matching losses (feature or gradient)"""
+    if isinstance(model, torch.nn.DataParallel):
+        model = model.module
+
     with torch.no_grad():
-        _, feat_tg = model(img_real, return_features=True)
-    _, feat = model(img_syn, return_features=True)
+        feat_tg = model.embed(img_real)
+    feat = model.embed(img_syn)
     feat = F.normalize(feat, dim=1)
     feat_tg = F.normalize(feat_tg, dim=1)
     t = None

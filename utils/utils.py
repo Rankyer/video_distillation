@@ -431,45 +431,94 @@ def get_feature_extractor(args):
     return model_init, model_interval, model_final
 
 
+# def update_feature_extractor(args, model_init, model_final, model_interval, a=0, b=1):
+#     if args.num_premodel > 0:
+#         # Select pre-trained model ID
+#         # slkt_model_id = random.randint(0, args.num_premodel - 1)
+#         slkt_model_id = 1
+
+#         # Construct the paths
+#         init_path = os.path.join(
+#             args.pretrain_dir, f"premodel{slkt_model_id}_init.pth.tar"
+#         )
+#         final_path = os.path.join(
+#             args.pretrain_dir, f"premodel{slkt_model_id}_trained.pth.tar"
+#         )
+#         # Load the pre-trained models
+#         load_state_dict(init_path, model_init)
+#         load_state_dict(final_path, model_final)
+#         l = (b - a) * torch.rand(1).to(args.device) + a
+#         # Interpolate to initialize `model_interval`
+#         for model_interval_param, model_init_param, model_final_param in zip(
+#             model_interval.parameters(),
+#             model_init.parameters(),
+#             model_final.parameters(),
+#         ):
+#             model_interval_param.data.copy_(
+#                 l * model_init_param.data + (1 - l) * model_final_param.data
+#             )
+
+#     else:
+#         if args.iter_calib > 0:
+#             slkt_model_id = random.randint(0, 9)
+#             final_path = os.path.join(
+#                 args.pretrain_dir, f"premodel{slkt_model_id}_trained.pth.tar"
+#             )
+#             load_state_dict(final_path, model_final)
+#         # model_interval = define_model(args.dataset, args.norm_type, args.net_type, args.nch, args.depth, args.width, args.nclass, args.logger, args.size).to(args.device)
+#         slkt_model_id = random.randint(0, 9)
+#         interval_path = os.path.join(
+#             args.pretrain_dir, f"premodel{slkt_model_id}_trained.pth.tar"
+#         )
+#         load_state_dict(interval_path, model_interval)
+
+#     return model_init, model_final, model_interval
+
+
+
 def update_feature_extractor(args, model_init, model_final, model_interval, a=0, b=1):
-    if args.num_premodel > 0:
-        # Select pre-trained model ID
-        # slkt_model_id = random.randint(0, args.num_premodel - 1)
-        slkt_model_id = 1
+    # Select pre-trained model ID
+    # slkt_model_id = 1
+    slkt_model_id = random.randint(1, 14)
 
-        # Construct the paths
-        init_path = os.path.join(
-            args.pretrain_dir, f"premodel{slkt_model_id}_init.pth.tar"
-        )
-        final_path = os.path.join(
-            args.pretrain_dir, f"premodel{slkt_model_id}_trained.pth.tar"
-        )
-        # Load the pre-trained models
-        load_state_dict(init_path, model_init)
-        load_state_dict(final_path, model_final)
-        l = (b - a) * torch.rand(1).to(args.device) + a
-        # Interpolate to initialize `model_interval`
-        for model_interval_param, model_init_param, model_final_param in zip(
-            model_interval.parameters(),
-            model_init.parameters(),
-            model_final.parameters(),
-        ):
-            model_interval_param.data.copy_(
-                l * model_init_param.data + (1 - l) * model_final_param.data
-            )
+    # Construct the paths (use .pth instead of .pth.tar)
+    init_path = os.path.join(
+        args.pretrain_dir, f"premodel{slkt_model_id}_init.pth"
+    )
+    final_path = os.path.join(
+        args.pretrain_dir, f"premodel{slkt_model_id}_trained.pth"
+    )
 
-    else:
-        if args.iter_calib > 0:
-            slkt_model_id = random.randint(0, 9)
-            final_path = os.path.join(
-                args.pretrain_dir, f"premodel{slkt_model_id}_trained.pth.tar"
-            )
-            load_state_dict(final_path, model_final)
-        # model_interval = define_model(args.dataset, args.norm_type, args.net_type, args.nch, args.depth, args.width, args.nclass, args.logger, args.size).to(args.device)
-        slkt_model_id = random.randint(0, 9)
-        interval_path = os.path.join(
-            args.pretrain_dir, f"premodel{slkt_model_id}_trained.pth.tar"
+    # Load the pre-trained models
+    # Remove 'module.' prefix if state_dict was saved with DataParallel
+    def remove_module_prefix(state_dict):
+        new_state_dict = {}
+        for key, value in state_dict.items():
+            new_key = key.replace("module.", "")  # Remove 'module.' prefix
+            new_state_dict[new_key] = value
+        return new_state_dict
+
+    # Load and clean the state_dict
+    init_state_dict = torch.load(init_path, map_location=args.device)
+    final_state_dict = torch.load(final_path, map_location=args.device)
+
+    # # If 'module.' prefix exists, remove it
+    # init_state_dict = remove_module_prefix(init_state_dict)
+    # final_state_dict = remove_module_prefix(final_state_dict)
+
+    # Load state_dict into models
+    model_init.load_state_dict(init_state_dict)
+    model_final.load_state_dict(final_state_dict)
+
+    # Interpolation
+    l = (b - a) * torch.rand(1).to(args.device) + a
+    for model_interval_param, model_init_param, model_final_param in zip(
+        model_interval.parameters(),
+        model_init.parameters(),
+        model_final.parameters(),
+    ):
+        model_interval_param.data.copy_(
+            l * model_init_param.data + (1 - l) * model_final_param.data
         )
-        load_state_dict(interval_path, model_interval)
 
     return model_init, model_final, model_interval

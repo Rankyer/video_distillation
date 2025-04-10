@@ -866,7 +866,8 @@ def evaluate_synset(it_eval, net, images_train, labels_train, testloader, args, 
     start = time.time()
 
 
-    for ep in tqdm.tqdm(range(Epoch + 1)):
+    # for ep in tqdm.tqdm(range(Epoch + 1)):
+    for ep in range(Epoch + 1):
         loss_train, acc_train, _= epoch('train', trainloader, net, optimizer, criterion, args)
         if (test_freq is None and ep == Epoch) or (test_freq is not None and ep % test_freq == 0 and ep != 0):
             with torch.no_grad():
