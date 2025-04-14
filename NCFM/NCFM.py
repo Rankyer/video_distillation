@@ -61,6 +61,8 @@ class CFLossFunc(nn.Module):
 
         # Combine losses
         loss = torch.mean(torch.sqrt(self.alpha * loss_amp + self.beta * loss_pha))
+
+        # loss = torch.mean(self.alpha * loss_amp + self.beta * loss_pha)
         return loss
 
 

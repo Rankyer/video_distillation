@@ -45,7 +45,7 @@ Conv3DNet = utils_file.Conv3DNet
 
 from NCFM.NCFM import match_loss, cailb_loss, mutil_layer_match_loss, CFLossFunc
 
-
+from utils.diffaug import diffaug
 
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -152,6 +152,9 @@ def main(args):
     best_acc = {m: 0 for m in model_eval_pool}
     best_std = {m: 0 for m in model_eval_pool}
     
+
+    # aug_fn, _ = diffaug(args)
+    
     if args.method == "CF":
         print("CF")
         # for it in trange(0, args.Iteration+1, ncols=60):
@@ -167,7 +170,7 @@ def main(args):
                     for it_eval in range(args.num_eval):
                         net_eval = get_network(model_eval, channel, num_classes, im_size).to(args.device)  # get a random model
                         image_syn_eval, label_syn_eval = image_syn.detach().clone(), label_syn.detach().clone() # avoid any unaware modification
-                        _, acc_train, acc_test, acc_per_cls = evaluate_synset(it_eval, net_eval, image_syn_eval, label_syn_eval, testloader, args, mode='none',test_freq=100)
+                        _, acc_train, acc_test, acc_per_cls = evaluate_synset(it_eval, net_eval, image_syn_eval, label_syn_eval, testloader, args, mode='none',test_freq=250)
 
                         accs_test.append(acc_test)
                         accs_train.append(acc_train)
@@ -212,15 +215,23 @@ def main(args):
 
             cf_loss_func = CFLossFunc(0.5, 0.5)
 
+            match_loss_total = 0
+
             loss = torch.tensor(0.0).to(args.device)
             for c in range(0,num_classes):
 
                 img_real = get_images(c, args.batch_real)
                 img_syn = image_syn[c*args.ipc:(c+1)*args.ipc].reshape((args.ipc, args.frames, channel, im_size[0], im_size[1]))
 
-                match_loss_total = 0
+                # img_aug = aug_fn(torch.cat([img_real, img_syn]))
+                # n = img_real.shape[0]
+
+                
 
                 loss = match_loss(img_real, img_syn, model_interval, cf_loss_func)
+
+                # loss = match_loss(img_aug[:n], img_aug[n:], model_interval, cf_loss_func)
+                
                 match_loss_total += loss.item()
 
                 optimizer_img.zero_grad()
@@ -294,6 +305,10 @@ if __name__ == '__main__':
     parser.add_argument('--pretrain_dir', type=str, default='./pretrain', help='pretrain model path')
 
     parser.add_argument('--nclass', type=int, default=50, help='number of class')
+
+    parser.add_argument('--aug_type', type=str, default="color_crop_cutout", help='augmentation type')
+    parser.add_argument('--mixup', type=str, default="cut", help='mixup')
+
 
 
     args = parser.parse_args()
