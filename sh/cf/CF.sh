@@ -18,6 +18,6 @@ CUDA_VISIBLE_DEVICES=${GPU} python distill_CF.py \
 --model ConvNet3D \
 --eval_mode SS \
 --eval_it 50 \
---batch_real 64 \
+--batch_real 512 \
 --num_workers 4 \
 --preload

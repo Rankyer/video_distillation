@@ -9,12 +9,26 @@ export HTTPS_PROXY=http://192.168.123.169:18889 &&\
 export NO_PROXY="localhost,127.0.0.0/8,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,lins.lab,*.lins.lab,westlake.edu.cn,*.westlake.edu.cn,*.edu.cn" &&\
 export no_proxy="localhost,127.0.0.0/8,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,lins.lab,*.lins.lab,westlake.edu.cn,*.westlake.edu.cn,*.edu.cn"
 
+export http_proxy=http://192.168.123.169:18889 &&\
+export https_proxy=http://192.168.123.169:18889 &&\
+export HTTP_PROXY=http://192.168.123.169:18889 &&\
+export HTTPS_PROXY=http://192.168.123.169:18889 &&\
+export NO_PROXY="localhost,127.0.0.0/8,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,lins.lab,*.lins.lab,westlake.edu.cn,*.westlake.edu.cn,*.edu.cn" &&\
+export no_proxy="localhost,127.0.0.0/8,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,lins.lab,*.lins.lab,westlake.edu.cn,*.westlake.edu.cn,*.edu.cn"
+curl google.com
+
 pip install wandb
 
 export WANDB_API_KEY=1d4d6c55d03f4bcf9dacf048fae90e56ced7ad61
 
 cd sh/cf
 
+cd home
+cd sh/cf
+pip install wandb -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+
+nohup nvidia-smi --query-gpu=timestamp,utilization.gpu,utilization.memory,memory.total,memory.used,memory.free,temperature.gpu,power.draw --format=csv -l 1 > gpu_usage.log 2>&1 &
 
 
 cd sh/baseline
@@ -64,3 +78,64 @@ wandb:
 1271535632-shanghaitech-university
 
 export WANDB_API_KEY=1d4d6c55d03f4bcf9dacf048fae90e56ced7ad61
+
+
+top
+ps -aux
+
+ps -eo pid,ppid,stat,cmd | grep '<defunct>'
+
+
+====================================================
+
+nohup bash CF.sh 0 miniUCF101 30 1 > CF_loss300_eval50_nosqrt.log 2>&1 &
+nohup bash CF.sh 0 miniUCF101 30 1 > CF_loss300_eval50_log.log 2>&1 &
+nohup bash CF.sh 0 miniUCF101 30 1 > CF_loss300_eval50_weight.log 2>&1 &
+nohup bash CF.sh 0 miniUCF101 30 1 > CF_loss300_eval50_focal.log 2>&1 &
+
+nohup bash CF.sh 0 miniUCF101 30 1 > CF_loss1000_eval50_sqrt.log 2>&1 &
+nohup bash CF.sh 0 miniUCF101 30 1 > CF_loss1000_eval50_nosqrt.log 2>&1 &
+nohup bash CF.sh 0 miniUCF101 30 1 > CF_loss1000_eval50_log.log 2>&1 &
+nohup bash CF.sh 0 miniUCF101 30 1 > CF_loss1000_eval50_weight.log 2>&1 &
+nohup bash CF.sh 0 miniUCF101 30 1 > CF_loss1000_eval50_focal.log 2>&1 &
+
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss1000_eval50_focal_2.0.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss1000_eval50_focal_3.0.log 2>&1 &
+
+
+
+nohup bash CF.sh 0,1 miniUCF101 30 5 > CF_loss300_eval50_square_loss_1.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 5 > CF_loss300_eval50_square_loss_2.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 5 > CF_loss300_eval50_nosqrt_loss_1.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 5 > CF_loss300_eval50_nosqrt_loss_2.log 2>&1 &
+
+
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss100_sqrt_loss_1.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss100_sqrt_loss_2.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss100_sqrt_loss_3.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss100_sqrt_loss_4.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss100_sqrt_loss_5.log 2>&1 &
+
+
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss300_eval50_nosqrt_loss_1_lr30.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss300_eval50_nosqrt_loss_2_lr30.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss300_eval50_nosqrt_loss_3_lr30.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss300_eval50_nosqrt_loss_4_lr30.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss300_eval50_nosqrt_loss_5_lr30.log 2>&1 &
+
+
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss1000_eval50_nosqrt_loss_1_lr30.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss1000_eval50_nosqrt_loss_2_lr30.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss1000_eval50_nosqrt_loss_3_lr30.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss1000_eval50_nosqrt_loss_4_lr30.log 2>&1 &
+nohup bash CF.sh 0,1 miniUCF101 30 1 > CF_loss1000_eval50_nosqrt_loss_5_lr30.log 2>&1 &
+
+
+nohup bash CF.sh 0,1 miniUCF101 10 1 > CF_loss300_eval50_nosqrt_loss_2_lr10.log 2>&1 &
+bash CF.sh 0,1 miniUCF101 30 1
+
+nohup python cal.py > cal.log 2>&1 &
+
+
+pgrep -f cal.py
+nvidia-smi
