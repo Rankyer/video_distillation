@@ -51,8 +51,23 @@ from utils.diffaug import diffaug
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 import distill_utils
+import time
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
+
 
 def main(args):
+
+
+    start_time = time.strftime("%Y%m%d_%H%M%S")
+    loss_file = f"./Loss/loss_log_{start_time}.txt"
+    os.makedirs(os.path.dirname(loss_file), exist_ok=True)
+
+    loss_buffer = []
+    buffer_size = 20
+
+    torch.cuda.empty_cache() 
+
     if args.outer_loop is None and args.inner_loop is None:
         args.outer_loop, args.inner_loop = get_loops(args.ipc)
     elif args.outer_loop is None or args.inner_loop is None:
@@ -66,7 +81,31 @@ def main(args):
     eval_it_pool = np.arange(0, args.Iteration + 1, args.eval_it).tolist()
     print('Evaluation iterations: ', eval_it_pool)
     channel, im_size, num_classes, class_names, mean, std, dst_train, dst_test, testloader= get_dataset(args.dataset, args.data_path)
-    if args.preload:
+    # if args.preload:
+    #     print("Preloading dataset")
+    #     video_all = []
+    #     label_all = []
+    #     for i in trange(len(dst_train)):
+    #         _ = dst_train[i]
+    #         video_all.append(_[0])
+    #         label_all.append(_[1])
+    #     video_all = torch.stack(video_all)
+    #     label_all = torch.tensor(label_all)
+    #     dst_train = torch.utils.data.TensorDataset(video_all, label_all)
+
+
+    video_file = "video_all.pt"
+    label_file = "label_all.pt"
+
+    if os.path.exists(video_file) and os.path.exists(label_file):
+        print("Loading preloaded dataset")
+        # video_all = torch.load(video_file)
+        # label_all = torch.load(label_file)
+        # dst_train = torch.utils.data.TensorDataset(video_all, label_all)
+        video_all = torch.load(video_file).to(args.device)
+        label_all = torch.load(label_file).to(args.device)
+        dst_train = torch.utils.data.TensorDataset(video_all, label_all)
+    else:
         print("Preloading dataset")
         video_all = []
         label_all = []
@@ -77,7 +116,20 @@ def main(args):
         video_all = torch.stack(video_all)
         label_all = torch.tensor(label_all)
         dst_train = torch.utils.data.TensorDataset(video_all, label_all)
-    
+
+
+        torch.save(video_all, video_file)
+        torch.save(label_all, label_file)
+
+
+        # video_file = "video_all.npz"
+        # label_file = "label_all.npz"
+        # np.savez(video_file, data=video_all.numpy())
+        # np.savez(label_file, data=label_all.numpy())
+
+        print("Dataset preloaded and saved for future use")
+
+        
     model_eval_pool = get_eval_pool(args.eval_mode, args.model, args.model)
 
     accs_all_exps = dict()  # record performances of all experiments
@@ -86,17 +138,21 @@ def main(args):
 
     project_name = "Baseline_{}".format(args.method)
 
-    wandb.init(sync_tensorboard=False,
-               project=project_name,
-               job_type="CleanRepo",
-               config=args,
-               name = f'{args.dataset}_ipc{args.ipc}_{args.lr_img}_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}'
-               )
+    # wandb.init(sync_tensorboard=False,
+    #            project=project_name,
+    #            job_type="CleanRepo",
+    #            config=args,
+    #            name = f'{args.dataset}_ipc{args.ipc}_{args.lr_img}_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}'
+    #            )
     
-    args = type('', (), {})()
+    # args = type('', (), {})()
 
-    for key in wandb.config._items:
-        setattr(args, key, wandb.config._items[key])
+    # for key in wandb.config._items:
+    #     setattr(args, key, wandb.config._items[key])
+
+    args = parser.parse_args()  # ✅ 直接使用 argparse 的参数
+    args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 
     if args.batch_syn is None:
         args.batch_syn = num_classes * args.ipc
@@ -113,7 +169,9 @@ def main(args):
     print("BUILDING DATASET")
     for i, lab in tqdm(enumerate(labels_all)):
         indices_class[lab].append(i)
-    labels_all = torch.tensor(labels_all, dtype=torch.long, device="cpu")
+    # labels_all = torch.tensor(labels_all, dtype=torch.long, device="cpu")
+
+    labels_all = labels_all.clone().detach()
 
     def get_images(c, n):  # get random n images from class c
         idx_shuffle = np.random.permutation(indices_class[c])[:n]
@@ -143,8 +201,13 @@ def main(args):
     optimizer_img.zero_grad()
 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer_img, mode="min", factor=0.5, patience=500, verbose=False
+        optimizer_img, mode="min", factor=0.5, patience=200, verbose=True
     )
+
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    #     optimizer_img, mode="min", factor=0.5, patience=100, verbose=True,threshold=0.1, threshold_mode='rel',
+    # )
+
 
     criterion = nn.CrossEntropyLoss().to(args.device)
     print('%s training begins'%get_time())
@@ -152,6 +215,7 @@ def main(args):
     best_acc = {m: 0 for m in model_eval_pool}
     best_std = {m: 0 for m in model_eval_pool}
     
+    previous_lr = optimizer_img.param_groups[0]['lr']
 
     # aug_fn, _ = diffaug(args)
     
@@ -171,7 +235,6 @@ def main(args):
                         net_eval = get_network(model_eval, channel, num_classes, im_size).to(args.device)  # get a random model
                         image_syn_eval, label_syn_eval = image_syn.detach().clone(), label_syn.detach().clone() # avoid any unaware modification
                         _, acc_train, acc_test, acc_per_cls = evaluate_synset(it_eval, net_eval, image_syn_eval, label_syn_eval, testloader, args, mode='none',test_freq=250)
-
                         accs_test.append(acc_test)
                         accs_train.append(acc_train)
                         print("acc_per_cls:",acc_per_cls)
@@ -185,16 +248,16 @@ def main(args):
                         save_this_best_ckpt = True
                     print('Evaluate %d random %s, mean = %.4f std = %.4f\n-------------------------' % (
                         len(accs_test), model_eval, acc_test_mean, acc_test_std))
-                    wandb.log({'Accuracy/{}'.format(model_eval): acc_test_mean}, step=it)
-                    wandb.log({'Max_Accuracy/{}'.format(model_eval): best_acc[model_eval]}, step=it)
-                    wandb.log({'Std/{}'.format(model_eval): acc_test_std}, step=it)
-                    wandb.log({'Max_Std/{}'.format(model_eval): best_std[model_eval]}, step=it)
+                    # wandb.log({'Accuracy/{}'.format(model_eval): acc_test_mean}, step=it)
+                    # wandb.log({'Max_Accuracy/{}'.format(model_eval): best_acc[model_eval]}, step=it)
+                    # wandb.log({'Std/{}'.format(model_eval): acc_test_std}, step=it)
+                    # wandb.log({'Max_Std/{}'.format(model_eval): best_std[model_eval]}, step=it)
 
                     print(f"Max_Accuracy{best_acc[model_eval]}")
             
             if it in eval_it_pool and (save_this_best_ckpt or it % 1000 == 0):
                 image_save = image_syn.detach()
-                save_dir = os.path.join(args.save_path, project_name, wandb.run.name)
+                save_dir = os.path.join(args.save_path, project_name)#, wandb.run.name)
                 if not os.path.exists(save_dir):
                     os.makedirs(save_dir)
                 torch.save(image_save.cpu(), os.path.join(save_dir, "images_{}.pt".format(it)))
@@ -228,15 +291,28 @@ def main(args):
 
                 
 
-                loss = match_loss(img_real, img_syn, model_interval, cf_loss_func)
+                loss += match_loss(img_real, img_syn, model_interval, cf_loss_func)
 
                 # loss = match_loss(img_aug[:n], img_aug[n:], model_interval, cf_loss_func)
                 
-                match_loss_total += loss.item()
+                # match_loss_total += loss.item()
+                match_loss_total = loss.item()
 
-                optimizer_img.zero_grad()
-                loss.backward()
-                optimizer_img.step()
+            optimizer_img.zero_grad()
+            loss.backward()
+            optimizer_img.step()
+
+
+            avg_loss = match_loss_total / num_classes
+
+            loss_buffer.append(f"{it},{avg_loss:.6f}\n")
+
+            if len(loss_buffer) >= buffer_size or it == args.Iteration:
+                with open(loss_file, 'a') as f:
+                    f.writelines(loss_buffer)
+                loss_buffer.clear()
+
+
 
             # if args.sampling_net:
             #     sampling_net = SampleNet(feature_dim=2048)
@@ -251,7 +327,17 @@ def main(args):
             )
             scheduler.step(current_loss)
 
-    wandb.finish()
+
+            current_lr = optimizer_img.param_groups[0]['lr']
+            # print(current_lr)
+            if current_lr != previous_lr:
+                print(f"Iteration {it}: Learning rate changed from {previous_lr:.6e} to {current_lr:.6e}")
+                previous_lr = current_lr
+
+            torch.cuda.empty_cache()
+
+
+    # wandb.finish()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Parameter Processing')
@@ -283,7 +369,7 @@ if __name__ == '__main__':
     parser.add_argument('--train_lr', action='store_true', help='train synthetic lr')
     
     parser.add_argument('--batch_real', type=int, default=256, help='batch size for real data')
-    parser.add_argument('--batch_train', type=int, default=256, help='batch size for training networks')
+    parser.add_argument('--batch_train', type=int, default=128, help='batch size for training networks')
     parser.add_argument('--batch_syn', type=int, default=None, help='batch size for syn')
 
     parser.add_argument('--init', type=str, default='real', choices=['noise', 'real', 'real-all'], help='noise/real: initialize synthetic images from random noise or randomly sampled real images.')
@@ -309,7 +395,10 @@ if __name__ == '__main__':
     parser.add_argument('--aug_type', type=str, default="color_crop_cutout", help='augmentation type')
     parser.add_argument('--mixup', type=str, default="cut", help='mixup')
 
-
+    parser.add_argument('--plot_freq', type=int, default=10,
+                    help='frequency of updating the loss plot')
+    parser.add_argument('--use_wandb', action='store_true',
+                    help='upload plot to wandb in realtime')
 
     args = parser.parse_args()
 

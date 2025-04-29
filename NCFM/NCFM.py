@@ -59,10 +59,23 @@ class CFLossFunc(nn.Module):
 
         loss_pha = loss_pha.clamp(min=1e-12)  # Ensure numerical stability
 
-        # Combine losses
+        ########### sqrt
         loss = torch.mean(torch.sqrt(self.alpha * loss_amp + self.beta * loss_pha))
 
+        ########### nosqrt
         # loss = torch.mean(self.alpha * loss_amp + self.beta * loss_pha)
+
+        ########### log
+        # loss = torch.mean(torch.log(1 + self.alpha * loss_amp + self.beta * loss_pha))
+
+        ########### weight
+        # epsilon = 1e-6  # 避免数值不稳定
+        # loss = torch.mean((self.alpha * loss_amp**2 + self.beta * loss_pha**2) /  (self.alpha * loss_amp + self.beta * loss_pha + epsilon))
+
+        ########### focal
+        # gamma = 2.0  # 超参数
+        # loss = torch.mean((self.alpha * loss_amp + self.beta * loss_pha) ** gamma)
+        
         return loss
 
 
@@ -85,6 +98,14 @@ def match_loss(img_real, img_syn, model, cf_loss_func):
     with torch.no_grad():
         feat_tg = model.embed(img_real)
     feat = model.embed(img_syn)
+
+    # with torch.no_grad():
+    #     feat_tg = model.embed(img_real)
+    #     print(f"feat_tg shape: {feat_tg.shape}")
+
+    # feat = model.embed(img_syn)
+    # print(f"feat shape: {feat.shape}")
+
     feat = F.normalize(feat, dim=1)
     feat_tg = F.normalize(feat_tg, dim=1)
     t = None

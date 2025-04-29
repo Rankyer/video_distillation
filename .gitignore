@@ -14,3 +14,6 @@ latest-run
 wandb/
 *.npz
 cal.log
+
+temp/
+Loss/

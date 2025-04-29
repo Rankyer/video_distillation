@@ -18,7 +18,7 @@ from networks import MLP, ConvNet, LeNet, AlexNet, AlexNetBN, VGG11, VGG11BN, Re
 
 
 # @lru_cache()
-def get_dataset(dataset, data_path, num_workers=0,img_size=(112,112),split_num=1,split_id=0,split_mode='mean'):
+def get_dataset(dataset, data_path, num_workers=8,img_size=(112,112),split_num=1,split_id=0,split_mode='mean'):
     if dataset == 'MNIST':
         channel = 1
         im_size = (28, 28)
